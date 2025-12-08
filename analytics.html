@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> Suivi des projets</title>
+  <link rel="stylesheet" href="analytics.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <h1> Graphiques de progression 📊 </h1>
+    <nav>
+      <a href="dashboard.html">← click ici pour un retour au tableau de bord</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <h2>Progression par projet</h2>
+      <canvas id="projectProgressChart"></canvas>
+    </section>
+
+    <section>
+      <h2>Progression globale</h2>
+      <canvas id="globalProgressChart"></canvas>
+    </section>
+  </main>
+   <footer>
+    <p>© 2025 - Plateforme collaborative de gestion de projet</p>
+  </footer>
+  <script>
+    // Récupération des données depuis le Dashboard
+    const projects = JSON.parse(localStorage.getItem("projects")) || [];
+    const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    // --- Graphique 1 : progression par projet ---
+    const ctxProject = document.getElementById("projectProgressChart").getContext("2d");
+    const labels = projects;
+    const progressPerProject = projects.map(p => {
+      const projTasks = tasks.filter(t => t.project === p);
+      if (projTasks.length === 0) return 0;
+      const doneTasks = projTasks.filter(t => t.completed).length;
+      return Math.round((doneTasks / projTasks.length) * 100);
+    });
+
+    new Chart(ctxProject, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Progression (%)',
+          data: progressPerProject,
+          backgroundColor: "rgba(54, 162, 235, 0.6)",
+          borderColor: "rgba(54, 162, 235, 1)",
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100 }
+        }
+      }
+    });
+
+    // --- Graphique 2 : progression globale (camembert) ---
+    const ctxGlobal = document.getElementById("globalProgressChart").getContext("2d");
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => t.completed).length;
+    const pendingTasks = totalTasks - completedTasks;
+
+    new Chart(ctxGlobal, {
+      type: 'pie',
+      data: {
+        labels: ["Tâches terminées", "Tâches en cours"],
+        datasets: [{
+          data: [completedTasks, pendingTasks],
+          backgroundColor: ["#4CAF50", "#FF9800"]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#fff', font: { size: 14 } }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

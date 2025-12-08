@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Tableau de Bord</title>
+  <link rel="stylesheet" href="PLATEFORMECOLLAB.css">
+</head>
+<body>
+  <h1>📊 T A B L E A U   DE     B O R D</h1>
+  <nav>
+    <a href="PLATEFORMECOLLAB.html">← Retour à l'accueil</a>
+    <a href="analytics.html"> | Consulter les graphiques de progression</a>
+  </nav>
+
+  <h2>Résumé Global</h2>
+  <ul>
+    <li>Total Projets : <span id="totalProjects">0</span></li>
+    <li>Total Équipes : <span id="totalTeams">0</span></li>
+    <li>Tâches en cours : <span id="tasksInProgress">0</span></li>
+    <li>Tâches terminées : <span id="tasksCompleted">0</span></li>
+  </ul>
+
+  <h2>Derniers Commentaires</h2>
+  <ul id="recentComments"></ul>
+
+  <h2>Détails par Projet</h2>
+  <div id="projectDetails"></div>
+
+  <footer>
+    <p>© 2025 - Gestion de projets</p>
+  </footer>
+
+<script>
+  // ==============================
+  // Stockage de l'état ouvert/fermé des projets
+  // ==============================
+  let projectStates = {}; // clé = nom du projet, valeur = true/false
+
+  // ==============================
+  // Chargement des données depuis localStorage
+  // ==============================
+  function loadData() {
+    return {
+      projects: JSON.parse(localStorage.getItem("projects")) || [],
+      teams: JSON.parse(localStorage.getItem("teams")) || [],
+      tasks: JSON.parse(localStorage.getItem("tasks")) || [],
+      comments: JSON.parse(localStorage.getItem("comments")) || []
+    };
+  }
+
+  // ==============================
+  // Sauvegarde des données dans localStorage
+  // ==============================
+  function saveData({projects, teams, tasks, comments}) {
+    localStorage.setItem("projects", JSON.stringify(projects));
+    localStorage.setItem("teams", JSON.stringify(teams));
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+    localStorage.setItem("comments", JSON.stringify(comments));
+  }
+
+  // ==============================
+  // Rafraîchissement du dashboard
+  // ==============================
+  function refreshDashboard() {
+    let { projects, teams, tasks, comments } = loadData();
+
+    // Résumé global
+    document.getElementById("totalProjects").textContent = projects.length;
+    document.getElementById("totalTeams").textContent = teams.length;
+    const completed = tasks.filter(t => t.completed).length;
+    const inProgress = tasks.length - completed;
+    document.getElementById("tasksCompleted").textContent = completed;
+    document.getElementById("tasksInProgress").textContent = inProgress;
+
+    // Derniers commentaires
+    const commentList = document.getElementById("recentComments");
+    commentList.innerHTML = "";
+    comments.slice(-5).reverse().forEach(c => {
+      const li = document.createElement("li");
+      li.textContent = `[${c.project}] ${c.text}`;
+      commentList.appendChild(li);
+    });
+
+    // Détails par projet
+    const detailsContainer = document.getElementById("projectDetails");
+    detailsContainer.innerHTML = "";
+
+    projects.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "project-card";
+
+      const title = document.createElement("h3");
+      title.textContent = p;
+
+      const detailDiv = document.createElement("div");
+      detailDiv.className = "details";
+      detailDiv.style.display = projectStates[p] ? "block" : "none";
+
+      const btn = document.createElement("button");
+      btn.textContent = "Voir détails";
+      btn.onclick = () => {
+        detailDiv.style.display = detailDiv.style.display === "none" ? "block" : "none";
+        projectStates[p] = detailDiv.style.display === "block";
+      };
+
+      // Tâches du projet
+      const projTasks = tasks.filter(t => t.project === p);
+      const taskList = document.createElement("ul");
+      projTasks.forEach((t,index)=>{
+        const li = document.createElement("li");
+        li.textContent = `${t.name} (${t.team || "Aucune équipe"})`;
+        li.setAttribute("draggable", true);
+
+        const badge = document.createElement("span");
+        badge.className = t.completed ? "badge completed" : "badge in-progress";
+        badge.textContent = t.completed ? "✅ Terminé" : "⏳ En cours";
+        li.appendChild(badge);
+
+        // Drag & Drop
+        li.addEventListener("dragstart", e => e.dataTransfer.setData("text/plain", index));
+        li.addEventListener("dragover", e => e.preventDefault());
+        li.addEventListener("drop", e => {
+          e.preventDefault();
+          const fromIndex = e.dataTransfer.getData("text/plain");
+          [projTasks[fromIndex], projTasks[index]] = [projTasks[index], projTasks[fromIndex]];
+          // mettre à jour tâches globales
+          tasks = tasks.filter(tk => tk.project !== p).concat(projTasks);
+          saveData({projects, teams, tasks, comments});
+          refreshDashboard();
+        });
+
+        taskList.appendChild(li);
+      });
+      detailDiv.appendChild(taskList);
+
+      // Progression projet
+      const progressContainer = document.createElement("div");
+      progressContainer.className = "progress-container";
+      const progressBar = document.createElement("div");
+      progressBar.className = "progress-bar";
+      const progressValue = projTasks.length ? Math.round((projTasks.filter(t=>t.completed).length/projTasks.length)*100) : 0;
+      progressBar.textContent = progressValue + "%";
+      progressBar.style.width = "0";
+      progressContainer.appendChild(progressBar);
+      detailDiv.appendChild(progressContainer);
+      setTimeout(()=>{ progressBar.style.width = progressValue+"%"; },50);
+
+      // Commentaires projet
+      const projComments = comments.filter(c => c.project===p);
+      const commentTitle = document.createElement("h4");
+      commentTitle.textContent = "Commentaires :";
+      detailDiv.appendChild(commentTitle);
+      const projCommentList = document.createElement("ul");
+      projComments.forEach(c=>{
+        const li=document.createElement("li"); li.textContent=c.text;
+        projCommentList.appendChild(li);
+      });
+      detailDiv.appendChild(projCommentList);
+
+      card.appendChild(title);
+      card.appendChild(btn);
+      card.appendChild(detailDiv);
+      detailsContainer.appendChild(card);
+    });
+
+    checkNotifications(projects,tasks);
+  }
+
+  // ==============================
+  // Notifications
+  // ==============================
+  function checkNotifications(projects,tasks){
+    projects.forEach(p=>{
+      const projTasks = tasks.filter(t=>t.project===p);
+      if(projTasks.length>0 && projTasks.every(t=>t.completed)){
+        if(!localStorage.getItem(`project_done_${p}`)){
+          alert(`🎉 Projet "${p}" terminé !`);
+          localStorage.setItem(`project_done_${p}`,true);
+        }
+      }
+    });
+    tasks.forEach(t=>{
+      if(t.completed && !localStorage.getItem(`task_done_${t.name}`)){
+        alert(`✅ Tâche "${t.name}" terminée !`);
+        localStorage.setItem(`task_done_${t.name}`,true);
+      }
+    });
+  }
+
+  // ==============================
+  // Initialisation
+  // ==============================
+  refreshDashboard();
+  setInterval(refreshDashboard, 1000);
+</script>
+</body>
+</html>

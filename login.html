@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-form">
+        <h2>Entrez vos identifiants</h2>
+      <form action="#" method="POST">
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="Entrez votre email" required>
+        </div>
+        <div class="input-group">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" name="password" placeholder="Entrez votre mot de passe" required>
+        </div>
+        <button type="submit" class="btn-login">Se connecter</button>
+        <div class="footer-links">
+      
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+  // Fonction de connexion
+  function login(event) {
+    event.preventDefault(); // Empêche l'envoi du formulaire
+
+    // Récupération des valeurs saisies
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    // Vérification des identifiants
+    if (email === 'Yann@mundiapolis.com' && password === '12345') {
+      // Authentification réussie
+      alert('Connexion réussie !');
+      // Redirection vers la page principale
+      window.location.href = 'PLATEFORMECOLLAB.html';
+    } else {
+      // Authentification échouée
+      alert('Identifiants incorrects. Veuillez réessayer.');
+    }
+  }
+
+  // Ajout de l'événement de soumission du formulaire
+  document.querySelector('form').addEventListener('submit', login);
+</script>
+
+</body>
+</html>
